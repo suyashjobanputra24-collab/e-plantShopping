@@ -39,18 +39,37 @@ const plantCategories = [
   }
 ];
 
+function Navbar({ cartCount }) {
+  return (
+    <nav className="navbar" style={styles.navbar}>
+      <Link to="/" style={styles.brand}>Paradise Nursery</Link>
+      <div style={styles.navLinks}>
+        <Link to="/" style={styles.navLink}>Home</Link>
+        <Link to="/plants" style={styles.navLink}>Plants</Link>
+        <Link to="/cart" className="cart-link" style={styles.navLink}>
+          <span aria-hidden="true">🛒</span> Cart
+          <span id="cart_quantity_count" className="cart_quantity_count">
+            {cartCount}
+          </span>
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
 function ProductList() {
   const dispatch = useDispatch();
-
-  const cartItems = useSelector((state) => state.cart.items);
+  const cartItems = useSelector((state) => state.cart.items || []);
 
   const cartCount = cartItems.reduce(
-    (total, item) => total + item.quantity,
+    (total, item) => total + (Number(item.quantity) || 0),
     0
   );
 
-  const isAdded = (plantId) =>
-    cartItems.some((item) => item.id === plantId);
+  const addedToCart = cartItems.reduce((map, item) => {
+    map[item.name] = true;
+    return map;
+  }, {});
 
   const handleAddToCart = (plant) => {
     dispatch(addItem(plant));
@@ -58,16 +77,7 @@ function ProductList() {
 
   return (
     <div style={styles.page}>
-      <nav style={styles.navbar}>
-        <Link to="/" style={styles.brand}>Paradise Nursery</Link>
-        <div style={styles.navLinks}>
-          <Link to="/" style={styles.link}>Home</Link>
-          <Link to="/plants" style={styles.link}>Plants</Link>
-          <Link to="/cart" style={styles.link}>
-            Cart ({cartCount})
-          </Link>
-        </div>
-      </nav>
+      <Navbar cartCount={cartCount} />
 
       <header style={styles.header}>
         <h1 style={styles.heading}>Our Houseplants</h1>
@@ -79,7 +89,6 @@ function ProductList() {
       {plantCategories.map((group) => (
         <section key={group.category} style={styles.section}>
           <h2 style={styles.categoryHeading}>{group.category}</h2>
-
           <div style={styles.grid}>
             {group.plants.map((plant) => (
               <article key={plant.id} style={styles.card}>
@@ -91,21 +100,21 @@ function ProductList() {
                     event.currentTarget.style.visibility = "hidden";
                   }}
                 />
-
                 <div style={styles.cardBody}>
                   <h3 style={styles.plantName}>{plant.name}</h3>
                   <p style={styles.price}>₹{plant.price}</p>
-
                   <button
                     type="button"
                     onClick={() => handleAddToCart(plant)}
-                    disabled={isAdded(plant.id)}
+                    disabled={Boolean(addedToCart[plant.name])}
                     style={{
                       ...styles.button,
-                      ...(isAdded(plant.id) ? styles.disabledButton : {})
+                      ...(addedToCart[plant.name]
+                        ? styles.disabledButton
+                        : {})
                     }}
                   >
-                    {isAdded(plant.id) ? "Added to Cart" : "Add to Cart"}
+                    {addedToCart[plant.name] ? "Added to Cart" : "Add to Cart"}
                   </button>
                 </div>
               </article>
@@ -143,10 +152,14 @@ const styles = {
   },
   navLinks: {
     display: "flex",
+    alignItems: "center",
     gap: "22px",
     flexWrap: "wrap"
   },
-  link: {
+  navLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
     color: "#fff",
     textDecoration: "none",
     fontWeight: "bold"
