@@ -1,0 +1,71 @@
+/* General page styling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+/* Paradise Nursery landing page background */
+.landing-page {
+  min-height: 100vh;
+  background-image: linear-gradient(
+      rgba(0, 0, 0, 0.45),
+      rgba(0, 0, 0, 0.45)
+    ),
+    url("https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1920&q=80");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  padding: 40px 20px;
+}
+
+/* Landing page heading */
+.landing-page h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+/* Landing page description */
+.landing-page p {
+  font-size: 1.2rem;
+  max-width: 650px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+/* Get Started button */
+.get-started-btn {
+  background-color: #2e7d32;
+  color: white;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.get-started-btn:hover {
+  background-color: #1b5e20;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .landing-page h1 {
+    font-size: 2rem;
+  }
+
+  .landing-page p {
+    font-size: 1rem;
+  }
+}
