@@ -1,29 +1,26 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  removeItem,
-  updateQuantity
-} from "./CartSlice";
+import { removeItem, updateQuantity } from "./CartSlice";
 
 function CartItem() {
   const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart.items || []);
 
-  const cartItems = useSelector(
-    (state) => state.cart.items
-  );
-
-  const totalItems = cartItems.reduce(
-    (total, item) => total + item.quantity,
+  const totalItems = cart.reduce(
+    (total, item) => total + (Number(item.quantity) || 0),
     0
   );
 
-  const totalPrice = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
+  // Support the assignment's "cost" field and the existing "price" field.
+  const getCost = (item) => Number(item.cost ?? item.price ?? 0);
+
+  const totalAmount = cart.reduce(
+    (total, item) => total + getCost(item) * item.quantity,
     0
   );
 
-  const handleIncrease = (item) => {
+  const handleIncrement = (item) => {
     dispatch(
       updateQuantity({
         id: item.id,
@@ -32,7 +29,12 @@ function CartItem() {
     );
   };
 
-  const handleDecrease = (item) => {
+  const handleDecrement = (item) => {
+    if (item.quantity <= 1) {
+      dispatch(removeItem(item.id));
+      return;
+    }
+
     dispatch(
       updateQuantity({
         id: item.id,
@@ -41,17 +43,21 @@ function CartItem() {
     );
   };
 
-  const handleRemove = (id) => {
-    dispatch(removeItem(id));
+  const handleDelete = (item) => {
+    dispatch(removeItem(item.id));
   };
 
   const handleCheckout = () => {
     window.alert("Coming Soon!");
   };
 
+  const handleContinueShopping = () => {
+    window.location.href = "/plants";
+  };
+
   return (
     <div style={styles.page}>
-      <nav style={styles.navbar}>
+      <nav className="navbar" style={styles.navbar}>
         <Link to="/" style={styles.brand}>
           Paradise Nursery
         </Link>
@@ -60,7 +66,10 @@ function CartItem() {
           <Link to="/" style={styles.navLink}>Home</Link>
           <Link to="/plants" style={styles.navLink}>Plants</Link>
           <Link to="/cart" style={styles.navLink}>
-            Cart ({totalItems})
+            <span aria-hidden="true">🛒</span> Cart
+            <span id="cart_quantity_count" className="cart_quantity_count">
+              {totalItems}
+            </span>
           </Link>
         </div>
       </nav>
@@ -71,22 +80,30 @@ function CartItem() {
           Review your plants and manage your order.
         </p>
 
-        {cartItems.length === 0 ? (
+        {cart.length === 0 ? (
           <div style={styles.emptyCart}>
             <div style={styles.emptyIcon}>🪴</div>
             <h2>Your cart is empty</h2>
-            <p>
-              Your favourite plants are waiting for you!
-            </p>
-            <Link to="/plants" style={styles.continueButton}>
+            <p>Your favourite plants are waiting for you!</p>
+
+            <button
+              type="button"
+              className="continue-shopping"
+              style={styles.primaryButton}
+              onClick={handleContinueShopping}
+            >
               Continue Shopping
-            </Link>
+            </button>
           </div>
         ) : (
           <>
-            <div style={styles.cartList}>
-              {cartItems.map((item) => (
-                <article key={item.id} style={styles.cartCard}>
+            <div className="cart-container" style={styles.cartContainer}>
+              {cart.map((item) => (
+                <article
+                  className="cart-item"
+                  key={item.id ?? item.name}
+                  style={styles.cartCard}
+                >
                   <img
                     src={item.image}
                     alt={item.name}
@@ -97,26 +114,22 @@ function CartItem() {
                   />
 
                   <div style={styles.details}>
-                    <h2 style={styles.plantName}>
-                      {item.name}
-                    </h2>
+                    <h2 style={styles.plantName}>{item.name}</h2>
 
                     <p style={styles.unitPrice}>
-                      Price: ₹{Number(item.price).toFixed(2)} each
+                      Unit Price: ₹{getCost(item).toFixed(2)}
                     </p>
 
                     <div style={styles.quantityRow}>
-                      <span style={styles.quantityLabel}>
-                        Quantity:
-                      </span>
+                      <span>Quantity:</span>
 
                       <button
                         type="button"
                         aria-label={`Decrease ${item.name} quantity`}
-                        onClick={() => handleDecrease(item)}
+                        onClick={() => handleDecrement(item)}
                         style={styles.quantityButton}
                       >
-                        −
+                        -
                       </button>
 
                       <span style={styles.quantity}>
@@ -126,7 +139,7 @@ function CartItem() {
                       <button
                         type="button"
                         aria-label={`Increase ${item.name} quantity`}
-                        onClick={() => handleIncrease(item)}
+                        onClick={() => handleIncrement(item)}
                         style={styles.quantityButton}
                       >
                         +
@@ -135,19 +148,18 @@ function CartItem() {
 
                     <button
                       type="button"
-                      onClick={() => handleRemove(item.id)}
-                      style={styles.removeButton}
+                      className="cart-item-delete"
+                      onClick={() => handleDelete(item)}
+                      style={styles.deleteButton}
                     >
-                      Remove Item
+                      Delete
                     </button>
                   </div>
 
                   <div style={styles.subtotalBox}>
-                    <span style={styles.subtotalLabel}>
-                      Subtotal
-                    </span>
+                    <span style={styles.subtotalLabel}>Item Total</span>
                     <strong style={styles.subtotal}>
-                      ₹{(item.price * item.quantity).toFixed(2)}
+                      ₹{(getCost(item) * item.quantity).toFixed(2)}
                     </strong>
                   </div>
                 </article>
@@ -155,28 +167,16 @@ function CartItem() {
             </div>
 
             <section style={styles.summary}>
-              <h2 style={styles.summaryHeading}>
-                Order Summary
-              </h2>
+              <h2 style={styles.summaryHeading}>Order Summary</h2>
 
               <div style={styles.summaryRow}>
-                <span>Total Plants</span>
+                <span>Total Items</span>
                 <span>{totalItems}</span>
               </div>
 
-              <div style={styles.summaryRow}>
-                <span>Subtotal</span>
-                <span>₹{totalPrice.toFixed(2)}</span>
-              </div>
-
-              <div style={styles.summaryRow}>
-                <span>Delivery</span>
-                <span>Free</span>
-              </div>
-
-              <div style={styles.totalRow}>
-                <strong>Total</strong>
-                <strong>₹{totalPrice.toFixed(2)}</strong>
+              <div className="cart-total" style={styles.totalRow}>
+                <strong>Total Amount</strong>
+                <strong>₹{totalAmount.toFixed(2)}</strong>
               </div>
 
               <button
@@ -187,9 +187,14 @@ function CartItem() {
                 Checkout
               </button>
 
-              <Link to="/plants" style={styles.continueLink}>
-                ← Continue Shopping
-              </Link>
+              <button
+                type="button"
+                className="continue-shopping"
+                onClick={handleContinueShopping}
+                style={styles.continueButton}
+              >
+                Continue Shopping
+              </button>
             </section>
           </>
         )}
@@ -213,7 +218,8 @@ const styles = {
     flexWrap: "wrap",
     gap: "16px",
     padding: "18px 6%",
-    backgroundColor: "#1f512b"
+    backgroundColor: "#1f512b",
+    color: "#fff"
   },
   brand: {
     color: "#fff",
@@ -223,10 +229,14 @@ const styles = {
   },
   navLinks: {
     display: "flex",
+    alignItems: "center",
     gap: "22px",
     flexWrap: "wrap"
   },
   navLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
     color: "#fff",
     textDecoration: "none",
     fontWeight: "bold"
@@ -244,7 +254,7 @@ const styles = {
     color: "#647467",
     marginBottom: "28px"
   },
-  cartList: {
+  cartContainer: {
     display: "flex",
     flexDirection: "column",
     gap: "18px"
@@ -284,9 +294,6 @@ const styles = {
     gap: "12px",
     marginBottom: "14px"
   },
-  quantityLabel: {
-    fontSize: "14px"
-  },
   quantityButton: {
     width: "32px",
     height: "32px",
@@ -302,7 +309,7 @@ const styles = {
     textAlign: "center",
     fontWeight: "bold"
   },
-  removeButton: {
+  deleteButton: {
     border: "none",
     background: "none",
     color: "#b42318",
@@ -364,14 +371,28 @@ const styles = {
     fontSize: "16px",
     fontWeight: "bold",
     cursor: "pointer",
-    marginBottom: "16px"
+    marginBottom: "12px"
   },
-  continueLink: {
-    display: "block",
-    textAlign: "center",
+  primaryButton: {
+    display: "inline-block",
+    marginTop: "20px",
+    padding: "12px 22px",
+    backgroundColor: "#2e7d32",
+    color: "#fff",
+    border: "none",
+    borderRadius: "7px",
+    fontWeight: "bold",
+    cursor: "pointer"
+  },
+  continueButton: {
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#fff",
     color: "#1f512b",
-    textDecoration: "none",
-    fontWeight: "bold"
+    border: "1px solid #1f512b",
+    borderRadius: "7px",
+    fontWeight: "bold",
+    cursor: "pointer"
   },
   emptyCart: {
     textAlign: "center",
@@ -382,16 +403,6 @@ const styles = {
   emptyIcon: {
     fontSize: "48px",
     marginBottom: "12px"
-  },
-  continueButton: {
-    display: "inline-block",
-    marginTop: "20px",
-    padding: "12px 22px",
-    backgroundColor: "#2e7d32",
-    color: "#fff",
-    textDecoration: "none",
-    borderRadius: "7px",
-    fontWeight: "bold"
   }
 };
 
